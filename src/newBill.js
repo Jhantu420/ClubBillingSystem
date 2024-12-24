@@ -3,13 +3,14 @@ import "./style/NewBill.css";
 
 function NewBill() {
   const [formData, setFormData] = useState({
+    id: "INCREMENT",
     name: "",
     billed_amount: "",
     paid_amount: "",
     date1: "",
     date2: "",
     paid_or_not: "",
-    billNo:"",
+    billNo: "",
   });
 
   const handleChange = (e) => {
@@ -23,16 +24,25 @@ function NewBill() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Validation: Check if mandatory fields are filled
-    const { name, billed_amount, date1, paid_or_not,billNo } = formData;
+    // Validation
+    const { name, billed_amount, date1, paid_or_not, billNo } = formData;
     if (!name || !billed_amount || !date1 || !paid_or_not || !billNo) {
-      alert("Please fill all mandatory fields: Name, Billed Amount, Billed Date,Bill NO, and Paid or Not.");
+      alert(
+        "Please fill all mandatory fields: Name, Billed Amount, Billed Date, Bill No, and Paid or Not."
+      );
       return; // Prevent submission
     }
 
-    // Ensure date is formatted as YYYY-MM-DD
-    const billedDateString = new Date(date1).toISOString().split("T")[0];
-    const paidDateString = formData.date2 ? new Date(formData.date2).toISOString().split("T")[0] : "0";
+    // Ensure the dates are in ISO string format
+    const formattedData = {
+      ...formData,
+      date1: formData.date1
+        ? new Date(formData.date1).toLocaleDateString("en-CA")
+        : "",
+      date2: formData.date2
+        ? new Date(formData.date2).toLocaleDateString("en-CA")
+        : "",
+    };
 
     fetch("https://sheetdb.io/api/v1/iimwflqhrmr1k", {
       method: "POST",
@@ -40,20 +50,7 @@ function NewBill() {
         Accept: "application/json",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        data: [
-          {
-            id: "INCREMENT", // Automatically increment ID
-            name,
-            billed_amount,
-            paid_amount: formData.paid_amount || "0",
-            date1: billedDateString,
-            date2: paidDateString,
-            paid_or_not,
-            billNo,
-          },
-        ],
-      }),
+      body: JSON.stringify({ data: formattedData }),
     })
       .then((response) => response.json())
       .then((data) => {
@@ -66,7 +63,7 @@ function NewBill() {
           date1: "",
           date2: "",
           paid_or_not: "",
-          billNo
+          billNo: "",
         });
       })
       .catch((error) => {

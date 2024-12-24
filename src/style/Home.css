@@ -1,0 +1,79 @@
+@import url("https://fonts.googleapis.com/css?family=Dosis:400,600");
+
+/* Keyframes for pulsing effect */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Keyframes for the expanding circle animation */
+@keyframes growCircle {
+  0% {
+    width: 0;
+    height: 0;
+    opacity: 0.5;
+  }
+  100% {
+    width: 8em; /* Reduced width for smaller buttons */
+    height: 8em; /* Reduced height for smaller buttons */
+    opacity: 1;
+  }
+}
+
+.link-button {
+  transition: 0.3s;
+  position: relative;
+  display: inline-block;
+  font-family: "Dosis", sans-serif;
+  font-size: 14px; /* Smaller font size */
+  font-weight: 600;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  height: 40px; /* Reduced height */
+  line-height: 40px; /* Adjusted line-height */
+  padding: 0 30px; /* Reduced padding */
+  text-decoration: none;
+  background-color: #1ea664;
+  border: none;
+  border-radius: 5px;
+  overflow: hidden;
+  animation: pulse 2s infinite; /* Pulsing effect for the button */
+}
+
+.link-button:before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  background: #1ea664;
+  border-radius: 50%;
+  width: 0;
+  height: 0;
+  z-index: -1;
+  transform: translate(-50%, -50%);
+  opacity: 0.5;
+}
+
+.link-button:hover:before {
+  animation: growCircle 0.6s forwards; /* Expanding circle animation on hover */
+}
+
+.link-button:hover {
+  color: #ffffff;
+}
+
+.container {
+  display: flex;
+  justify-content: space-between; /* Ensures the buttons are spaced out in a row */
+  row-gap: 10px;
+  width: 100%; /* Full width of the parent container */
+  max-width: 350px; /* Optional: You can set a max width for the container to control button width */
+}

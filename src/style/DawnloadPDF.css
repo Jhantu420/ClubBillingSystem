@@ -1,0 +1,124 @@
+/* General styles for the component */
+body {
+    font-family: Arial, sans-serif;
+  }
+  
+  h2, h3 {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  
+  label {
+    display: block;
+    margin: 10px 0;
+    font-size: 16px;
+  }
+  
+  input[type="date"],
+  input[type="text"] {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+  }
+  
+  button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    margin: 5px 0;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 16px;
+    width: 100%;
+    max-width: 200px;
+    text-align: center;
+  }
+  
+  button:hover {
+    background-color: #45a049;
+  }
+  
+  /* Table styles */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
+  
+  th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+    font-size: 14px;
+  }
+  
+  th {
+    background-color: #f4f4f4;
+  }
+  
+  tr:nth-child(even) {
+    background-color: #f9f9f9;
+  }
+  
+  tr:hover {
+    background-color: #f1f1f1;
+  }
+  
+  /* Scrollable table container */
+  div[style*="overflow-x: auto"] {
+    margin-top: 10px;
+    overflow-x: auto;
+  }
+  
+  /* Responsive styles */
+  @media (max-width: 768px) {
+    h2, h3 {
+      font-size: 18px;
+    }
+  
+    input[type="date"],
+    input[type="text"],
+    button {
+      font-size: 14px;
+    }
+  
+    th, td {
+      font-size: 12px;
+    }
+  
+    button {
+      max-width: 100%;
+      padding: 8px;
+    }
+  
+    table {
+      width: 100%;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    h2, h3 {
+      font-size: 16px;
+    }
+  
+    input[type="date"],
+    input[type="text"],
+    button {
+      font-size: 12px;
+      padding: 6px;
+    }
+  
+    th, td {
+      font-size: 10px;
+      padding: 6px;
+    }
+  
+    button {
+      max-width: 100%;
+    }
+  }
+  
