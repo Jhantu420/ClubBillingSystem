@@ -21,31 +21,22 @@ function NewBill() {
     }));
   };
 
-  const fetchCachedData = () => {
+  const fetchCachedData = async () => {
     const cachedData = localStorage.getItem("billsData");
     if (cachedData) {
       const { data, timestamp } = JSON.parse(cachedData);
       const currentTime = new Date().getTime();
-      const oneDay = 24 * 60 * 60 * 1000;
+      const fiveDays = 5 * 24 * 60 * 60 * 1000; // 5 days in milliseconds
 
-      if (currentTime - timestamp < oneDay) {
-        // Use cached data
+      if (currentTime - timestamp < fiveDays) {
+        // Use cached data if it is within 5 days
         console.log("Using cached bills data:", data);
         return data;
       }
     }
-    return [];
+    return []; // Return empty array if no valid cache or cache expired
   };
 
-  const updateLocalStorage = (newBill) => {
-    const existingData = fetchCachedData();
-    const updatedData = [...existingData, newBill];
-    localStorage.setItem(
-      "billsData",
-      JSON.stringify({ data: updatedData, timestamp: new Date().getTime() })
-    );
-    console.log("Updated local storage with new bill:", newBill);
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -61,8 +52,10 @@ function NewBill() {
     }
 
     try {
+      // Fetch existing cached data
+      const existingBills = await fetchCachedData();
+
       // Check for duplicate Bill No
-      const existingBills = fetchCachedData();
       const duplicate = existingBills.some((bill) => bill.billNo === billNo);
 
       if (duplicate) {
@@ -72,8 +65,8 @@ function NewBill() {
         return;
       }
 
-      // Ensure the dates are in ISO string format
-      const formattedData = {
+      // Add the new bill to localStorage
+      const newBill = {
         ...formData,
         date1: formData.date1
           ? new Date(formData.date1).toLocaleDateString("en-CA")
@@ -83,25 +76,15 @@ function NewBill() {
           : "",
       };
 
-      // Submit the form
-      const submitResponse = await fetch(
-        "https://sheetdb.io/api/v1/c495ucuahvet3",
-        {
-          method: "POST",
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ data: formattedData }),
-        }
+      // Add new bill to the cached bills data
+      const updatedBills = [...existingBills, newBill];
+      localStorage.setItem(
+        "billsData",
+        JSON.stringify({ data: updatedBills, timestamp: new Date().getTime() })
       );
 
-      const result = await submitResponse.json();
-      console.log("Bill Created:", result);
-      alert("New bill successfully created!");
-
-      // Update local storage with new bill
-      updateLocalStorage(formattedData);
+      console.log("New bill added to local storage:", newBill);
+      alert("New bill added to local storage!");
 
       setFormData({
         id: "INCREMENT",
@@ -114,10 +97,12 @@ function NewBill() {
         billNo: "",
       });
     } catch (error) {
-      console.error("Error creating bill:", error);
-      alert("Failed to create the bill.");
+      console.error("Error adding new bill:", error);
+      alert("Failed to add the bill.");
     }
   };
+
+  
 
   return (
     <div className="main">
@@ -197,7 +182,7 @@ function NewBill() {
         </label>
         <br />
         <button type="submit" className="n-btn">
-          Submit
+          Add to Local Storage
         </button>
       </form>
     </div>

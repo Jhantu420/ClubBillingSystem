@@ -7,76 +7,34 @@ function Update() {
   const [isLoading, setIsLoading] = useState(false);
   const [records, setRecords] = useState([]); // To store multiple records for the same Bill No
 
-  // Fetch all data and save to local storage
-  const fetchAllData = async () => {
-    setIsLoading(true);
-
-    try {
-      const response = await fetch("https://sheetdb.io/api/v1/c495ucuahvet3");
-      const data = await response.json();
-
-      // Save data to local storage with a timestamp
-      localStorage.setItem(
-        "billsData",
-        JSON.stringify({ data, timestamp: new Date().getTime() })
-      );
-      alert("Data fetched and stored in local storage for one day.");
-    } catch (error) {
-      console.error("Error fetching all data:", error);
-      alert("Failed to fetch data. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Get data from local storage or fetch fresh data if expired
-  const getCachedData = () => {
-    const cachedData = localStorage.getItem("billsData");
-    if (cachedData) {
-      const { data, timestamp } = JSON.parse(cachedData);
-      const currentTime = new Date().getTime();
-      const oneDay = 24 * 60 * 60 * 1000;
-
-      if (currentTime - timestamp < oneDay) {
-        console.log("Using cached data.");
-        return data;
-      }
-    }
-    console.log("Cache expired. Fetch fresh data.");
-    return [];
-  };
-
-  // Search data by Bill No from local storage
+  // Fetch and update records from local storage
   const handleSearch = () => {
     if (!searchTerm) {
       alert("Please enter a Bill No to search.");
       return;
     }
 
-    const data = getCachedData();
-    const filteredRecords = data.filter((record) => record.billNo === searchTerm);
+    setIsLoading(true);
 
-    if (filteredRecords.length === 0) {
-      alert("No data found for the provided Bill No.");
-      setRecords([]);
-      setFormData(null);
+    // Fetch data from localStorage
+    const cachedData = localStorage.getItem("billsData");
+    if (cachedData) {
+      const { data } = JSON.parse(cachedData);
+      const filteredRecords = data.filter(
+        (record) => record.billNo === searchTerm
+      );
+
+      if (filteredRecords.length === 0) {
+        alert("No data found for the provided Bill No.");
+      } else {
+        setRecords(filteredRecords); // Store all matching records
+        setFormData(filteredRecords[0]); // Prefill form with the first match
+      }
     } else {
-      setRecords(filteredRecords);
-      setFormData(filteredRecords[0]);
+      alert("No data found in local storage.");
     }
-  };
 
-  // Update local storage with new or updated data
-  const updateLocalStorage = (updatedRecord) => {
-    const data = getCachedData();
-    const updatedData = data.map((record) =>
-      record.billNo === updatedRecord.billNo ? updatedRecord : record
-    );
-    localStorage.setItem(
-      "billsData",
-      JSON.stringify({ data: updatedData, timestamp: new Date().getTime() })
-    );
-    console.log("Local storage updated with new data.");
+    setIsLoading(false);
   };
 
   // Handle form field changes
@@ -88,68 +46,45 @@ function Update() {
     }));
   };
 
-  // Handle form submission for update
+  // Handle form submission (update in localStorage)
   const handleUpdate = (e) => {
     e.preventDefault();
 
-    // Validate changes
-    const lastUploadedData = JSON.parse(localStorage.getItem("lastUploadedData"));
-    if (lastUploadedData && JSON.stringify(lastUploadedData) === JSON.stringify(formData)) {
-      alert("No changes detected. Please update the data before submitting.");
+    if (!formData) {
+      alert("No form data available for update.");
       return;
     }
 
-    fetch(`https://sheetdb.io/api/v1/c495ucuahvet3/billNo/${formData.billNo}`, {
-      method: "PATCH",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        data: formData,
-      }),
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("Failed to update the data.");
-        }
-        return response.json();
-      })
-      .then((data) => {
-        console.log("Update successful:", data);
-        alert("Data updated successfully!");
+    // Fetch data from localStorage
+    const cachedData = localStorage.getItem("billsData");
+    if (cachedData) {
+      const { data, timestamp } = JSON.parse(cachedData);
 
-        // Update local storage with the updated record
-        updateLocalStorage(formData);
+      // Update the localStorage with new formData
+      const updatedData = data.map((record) =>
+        record.billNo === formData.billNo ? { ...formData } : record
+      );
 
-        setFormData(null);
-        setSearchTerm("");
-        setRecords([]);
-
-        // Store the updated data in localStorage
-        localStorage.setItem("lastUploadedData", JSON.stringify(formData));
-      })
-      .catch((error) => {
-        console.error("Error updating data:", error);
-        alert("Failed to update the data. Please try again.");
-      });
+      // Save updated data back to localStorage
+      localStorage.setItem(
+        "billsData",
+        JSON.stringify({ data: updatedData, timestamp })
+      );
+      alert("Data updated in local storage!");
+      setRecords(
+        updatedData.filter((record) => record.billNo === formData.billNo)
+      ); // Update displayed records
+    }
   };
 
   // Handle record selection from the list
   const handleSelectRecord = (record) => {
-    setFormData(record);
+    setFormData(record); // Prefill form with the selected record
   };
 
   return (
     <div>
       <h2>Search and Update</h2>
-
-      {/* Fetch All Data Section */}
-      <div className="fetch-section">
-        <button onClick={fetchAllData} disabled={isLoading}>
-          {isLoading ? "Fetching..." : "Fetch All Data"}
-        </button>
-      </div>
 
       {/* Search Section */}
       <div className="search-section">
@@ -161,24 +96,10 @@ function Update() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </label>
-        <button onClick={handleSearch}>Search</button>
+        <button onClick={handleSearch} disabled={isLoading}>
+          {isLoading ? "Searching..." : "Search"}
+        </button>
       </div>
-
-      {/* List of Records Section */}
-      {records.length > 0 && (
-        <div>
-          <h3>Select a Record to Edit</h3>
-          <ul>
-            {records.map((record) => (
-              <li key={record.billNo}>
-                <button onClick={() => handleSelectRecord(record)}>
-                  Edit Bill No: {record.billNo}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
 
       {/* Prefilled Form Section */}
       {formData && (
@@ -257,7 +178,7 @@ function Update() {
             </select>
           </label>
           <br />
-          <button type="submit">Update</button>
+          <button type="submit">Update in Local Storage</button>
         </form>
       )}
     </div>

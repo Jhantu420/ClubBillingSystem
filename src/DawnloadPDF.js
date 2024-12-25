@@ -9,41 +9,72 @@ function DawnloadPDF() {
   const [searchQuery, setSearchQuery] = useState(""); // Search query state
   const [filteredData, setFilteredData] = useState([]); // Filtered data for the table
 
-  // Helper function to fetch and store data in localStorage
-  const fetchData = () => {
-    fetch("https://sheetdb.io/api/v1/c495ucuahvet3")
-      .then((response) => response.json())
-      .then((data) => {
-        const timestamp = new Date().getTime(); // Current time in milliseconds
-        const dataToStore = { data, timestamp };
-        localStorage.setItem("cachedData", JSON.stringify(dataToStore)); // Save data and timestamp
-        alert("Data fetched and stored in local storage for one day.");
-        setData(data);
-        setFilteredData(data);
-        console.log("Fetched Data:", data);
-      })
-      .catch((error) => {
-        console.error("Error fetching data:", error);
-      });
+  // Fetch and store data in Local Storage when clicked
+  const fetchAndStoreData = async () => {
+    try {
+      const response = await fetch("https://sheetdb.io/api/v1/c495ucuahvet3");
+      const data = await response.json();
+      localStorage.setItem(
+        "billsData",
+        JSON.stringify({ data, timestamp: new Date().getTime() })
+      );
+      alert("Data fetched and cached successfully!");
+      setData(data); // Update the data state after storing it
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      alert("Failed to fetch data.");
+    }
   };
 
-  // Load data from localStorage if valid
-  const loadCachedData = () => {
-    const cachedData = localStorage.getItem("cachedData");
-    if (cachedData) {
-      const { data, timestamp } = JSON.parse(cachedData);
-      const currentTime = new Date().getTime();
-      const oneDay = 24 * 60 * 60 * 1000; // 1 day in milliseconds
+  // Final submission to the database
+  const handleFinalSubmit = async () => {
+    const cachedData = localStorage.getItem("billsData");
 
-      if (currentTime - timestamp < oneDay) {
-        // Use cached data if within 1 day
-        setData(data);
-        setFilteredData(data);
-        console.log("Using cached data:", data);
-        return true;
+    if (cachedData) {
+      const { data } = JSON.parse(cachedData);
+
+      try {
+        // Step 1: Delete existing data from the Google Sheet (or the database)
+        fetch("https://sheetdb.io/api/v1/c495ucuahvet3/duplicates", {
+          method: "DELETE",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+        })
+          .then((response) => response.json())
+          .then((data) => console.log(data));
+
+        // Step 2: Submit the new data
+        const submitResponse = await fetch(
+          "https://sheetdb.io/api/v1/c495ucuahvet3",
+          {
+            method: "POST",
+            headers: {
+              Accept: "application/json",
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ data }),
+          }
+        );
+
+        const result = await submitResponse.json();
+        console.log("New data submitted to database:", result);
+
+        // Optionally, reset the localStorage or keep it for future updates
+        localStorage.setItem(
+          "billsData",
+          JSON.stringify({ data: [], timestamp: new Date().getTime() })
+        );
+
+        alert("New data successfully submitted!");
+      } catch (error) {
+        console.error("Error handling data submission:", error);
+        alert("Failed to submit data.");
       }
+    } else {
+      alert("No data to submit.");
     }
-    return false; // No valid cached data
   };
 
   // Handle search input change
@@ -58,33 +89,29 @@ function DawnloadPDF() {
     setFilteredData(filtered);
   };
 
-  // Check for cached data on component load
-  useEffect(() => {
-    if (!loadCachedData()) {
-      console.log("No valid cached data, please fetch data.");
-    }
-  }, []);
-
-  // Generate a PDF report (other functions remain unchanged)
+  // Generate a PDF report
   const generatePDF = (filteredData, title) => {
     const doc = new jsPDF();
 
-    // Define watermark logic
+    // Add multiple watermarks at a 45-degree angle
     const addWatermarks = () => {
       const watermarkText = "Bhatora Golap Sangha";
       doc.setFontSize(20);
       doc.setTextColor(200, 200, 200); // Light gray color
+
       const pageWidth = doc.internal.pageSize.width;
       const pageHeight = doc.internal.pageSize.height;
 
       for (let x = -50; x < pageWidth + 50; x += 100) {
         for (let y = 50; y < pageHeight + 50; y += 100) {
-          doc.text(watermarkText, x, y, { angle: 45 });
+          doc.text(watermarkText, x, y, {
+            angle: 45, // Rotate the text 45 degrees
+          });
         }
       }
     };
 
-    // Add a title
+    // Add a centered, capitalized title
     doc.setFontSize(24);
     doc.setFont("helvetica", "bold");
     doc.text(title.toUpperCase(), doc.internal.pageSize.width / 2, 20, {
@@ -105,7 +132,7 @@ function DawnloadPDF() {
       { header: "Paid Date", dataKey: "date2" },
     ];
 
-    // Prepare rows
+    // Prepare rows for the table
     const rows = filteredData.map((item) => ({
       name: item.name,
       billNo: item.billNo,
@@ -116,7 +143,7 @@ function DawnloadPDF() {
       date2: item.date2 || "-",
     }));
 
-    // Add table
+    // Add the table to the PDF
     doc.autoTable({
       head: [columns.map((col) => col.header)],
       body: rows.map((row) => columns.map((col) => row[col.dataKey])),
@@ -126,56 +153,83 @@ function DawnloadPDF() {
       },
     });
 
-    // Save the PDF
     doc.save(`${title.replace(/\s+/g, "_").toLowerCase()}.pdf`);
   };
 
-  // Filter data and generate PDFs (other functions unchanged)
+  // Filter data by date and paid_or_not
   const filterDataAndGeneratePDF = () => {
     if (!filterDate) {
       alert("Please select a date to filter.");
       return;
     }
 
-    const filteredData = data.filter(
-      (item) => item.date2 === filterDate && item.paid_or_not === "Yes"
-    );
+    const cachedData = localStorage.getItem("billsData");
+    if (cachedData) {
+      const { data } = JSON.parse(cachedData);
+      const filteredData = data.filter(
+        (item) => item.date2 === filterDate && item.paid_or_not === "Yes"
+      );
 
-    if (filteredData.length === 0) {
-      alert("No data found for the selected date with 'Paid' status.");
-      return;
+      if (filteredData.length === 0) {
+        alert("No data found for the selected date with 'Paid' status.");
+        return;
+      }
+
+      generatePDF(filteredData, `Bill Report for ${filterDate}`);
+    } else {
+      alert("No data available in Local Storage.");
     }
-
-    generatePDF(filteredData, `Bill Report for ${filterDate}`);
   };
 
+  // Generate a PDF with all paid data
   const generateAllDataPDF = () => {
-    const filteredData = data.filter((item) => item.paid_or_not === "Yes");
+    const cachedData = localStorage.getItem("billsData");
+    if (cachedData) {
+      const { data } = JSON.parse(cachedData);
+      const filteredData = data.filter((item) => item.paid_or_not === "Yes");
 
-    if (filteredData.length === 0) {
-      alert("No data found with 'Paid' status.");
-      return;
+      if (filteredData.length === 0) {
+        alert("No data found with 'Paid' status.");
+        return;
+      }
+
+      generatePDF(filteredData, "Full Bill Report");
+    } else {
+      alert("No data available in Local Storage.");
     }
-
-    generatePDF(filteredData, "Full Bill Report");
   };
 
+  // Generate a PDF with all unpaid data
   const generateUnpaidDataPDF = () => {
-    const filteredData = data.filter((item) => item.paid_or_not === "No");
+    const cachedData = localStorage.getItem("billsData");
+    if (cachedData) {
+      const { data } = JSON.parse(cachedData);
+      const filteredData = data.filter((item) => item.paid_or_not === "No");
 
-    if (filteredData.length === 0) {
-      alert("No unpaid data found.");
-      return;
+      if (filteredData.length === 0) {
+        alert("No unpaid data found.");
+        return;
+      }
+
+      generatePDF(filteredData, "Unpaid Bill Report");
+    } else {
+      alert("No data available in Local Storage.");
     }
-
-    generatePDF(filteredData, "Unpaid Bill Report");
   };
+
+  // Load data from local storage when the component mounts
+  useEffect(() => {
+    const cachedData = localStorage.getItem("billsData");
+    if (cachedData) {
+      const { data } = JSON.parse(cachedData);
+      setData(data);
+      setFilteredData(data); // Initialize filtered data with all the data
+    }
+  }, []);
 
   return (
     <div>
       <h2 className="b-h1">Download Bill Reports</h2>
-      <button onClick={fetchData} className="b-tn">Fetch Data</button>
-      <br />
       <label className="b-h2">
         Filter by Date:
         <input
@@ -194,6 +248,16 @@ function DawnloadPDF() {
       <br />
       <button onClick={generateUnpaidDataPDF} className="b-tn">
         Download Unpaid Report
+      </button>
+      <br />
+      <br />
+      <button onClick={fetchAndStoreData} className="b-tn">
+        Fetch And Store Data
+      </button>
+      <br />
+      <br />
+      <button onClick={handleFinalSubmit} className="b-tn">
+        Final Submit All Data
       </button>
       <br />
       <br />
