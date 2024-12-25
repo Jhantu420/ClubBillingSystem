@@ -1,26 +1,50 @@
 import React, { useState, useEffect } from "react";
 import { jsPDF } from "jspdf";
 import "jspdf-autotable"; // Import the autoTable plugin
-import "./style/DawnloadPDF.css"
+import "./style/DawnloadPDF.css";
+
 function DawnloadPDF() {
   const [data, setData] = useState([]);
   const [filterDate, setFilterDate] = useState("");
   const [searchQuery, setSearchQuery] = useState(""); // Search query state
   const [filteredData, setFilteredData] = useState([]); // Filtered data for the table
 
-  // Fetch data automatically when the component loads
-  useEffect(() => {
-    fetch("https://sheetdb.io/api/v1/iimwflqhrmr1k")
+  // Helper function to fetch and store data in localStorage
+  const fetchData = () => {
+    fetch("https://sheetdb.io/api/v1/c495ucuahvet3")
       .then((response) => response.json())
       .then((data) => {
-        setData(data); // Store fetched data
-        setFilteredData(data); // Initialize filtered data with full data
+        const timestamp = new Date().getTime(); // Current time in milliseconds
+        const dataToStore = { data, timestamp };
+        localStorage.setItem("cachedData", JSON.stringify(dataToStore)); // Save data and timestamp
+        alert("Data fetched and stored in local storage for one day.");
+        setData(data);
+        setFilteredData(data);
         console.log("Fetched Data:", data);
       })
       .catch((error) => {
         console.error("Error fetching data:", error);
       });
-  }, []);
+  };
+
+  // Load data from localStorage if valid
+  const loadCachedData = () => {
+    const cachedData = localStorage.getItem("cachedData");
+    if (cachedData) {
+      const { data, timestamp } = JSON.parse(cachedData);
+      const currentTime = new Date().getTime();
+      const oneDay = 24 * 60 * 60 * 1000; // 1 day in milliseconds
+
+      if (currentTime - timestamp < oneDay) {
+        // Use cached data if within 1 day
+        setData(data);
+        setFilteredData(data);
+        console.log("Using cached data:", data);
+        return true;
+      }
+    }
+    return false; // No valid cached data
+  };
 
   // Handle search input change
   const handleSearch = (e) => {
@@ -34,39 +58,42 @@ function DawnloadPDF() {
     setFilteredData(filtered);
   };
 
-  // Generate a PDF report
+  // Check for cached data on component load
+  useEffect(() => {
+    if (!loadCachedData()) {
+      console.log("No valid cached data, please fetch data.");
+    }
+  }, []);
+
+  // Generate a PDF report (other functions remain unchanged)
   const generatePDF = (filteredData, title) => {
     const doc = new jsPDF();
-  
-    // Add multiple watermarks at a 45-degree angle
+
+    // Define watermark logic
     const addWatermarks = () => {
       const watermarkText = "Bhatora Golap Sangha";
       doc.setFontSize(20);
       doc.setTextColor(200, 200, 200); // Light gray color
-  
       const pageWidth = doc.internal.pageSize.width;
       const pageHeight = doc.internal.pageSize.height;
-  
+
       for (let x = -50; x < pageWidth + 50; x += 100) {
         for (let y = 50; y < pageHeight + 50; y += 100) {
-          // Start the watermark from below the title area
-          doc.text(watermarkText, x, y, {
-            angle: 45, // Rotate the text 45 degrees
-          });
+          doc.text(watermarkText, x, y, { angle: 45 });
         }
       }
     };
-  
-    // Add a centered, capitalized title
+
+    // Add a title
     doc.setFontSize(24);
-    doc.setFont("helvetica", "bold"); // Use bold for the title
+    doc.setFont("helvetica", "bold");
     doc.text(title.toUpperCase(), doc.internal.pageSize.width / 2, 20, {
       align: "center",
     });
-  
-    // Add watermarks, starting below the title
+
+    // Add watermarks
     addWatermarks();
-  
+
     // Define table columns
     const columns = [
       { header: "Name", dataKey: "name" },
@@ -77,8 +104,8 @@ function DawnloadPDF() {
       { header: "Billed Date", dataKey: "date1" },
       { header: "Paid Date", dataKey: "date2" },
     ];
-  
-    // Prepare rows for the table
+
+    // Prepare rows
     const rows = filteredData.map((item) => ({
       name: item.name,
       billNo: item.billNo,
@@ -88,29 +115,22 @@ function DawnloadPDF() {
       date1: item.date1,
       date2: item.date2 || "-",
     }));
-  
-    // Add the table to the PDF
+
+    // Add table
     doc.autoTable({
-      head: [columns.map((col) => col.header)], // Table headers
-      body: rows.map((row) => columns.map((col) => row[col.dataKey])), // Table rows
-      startY: 30, // Start below the title
+      head: [columns.map((col) => col.header)],
+      body: rows.map((row) => columns.map((col) => row[col.dataKey])),
+      startY: 30,
       didDrawPage: (data) => {
-        // Add watermarks on subsequent pages
         if (data.pageNumber > 1) addWatermarks();
       },
     });
-  
+
     // Save the PDF
     doc.save(`${title.replace(/\s+/g, "_").toLowerCase()}.pdf`);
   };
-  
-  
-  
-  
-  
-  
 
-  // Filter data by date and paid_or_not
+  // Filter data and generate PDFs (other functions unchanged)
   const filterDataAndGeneratePDF = () => {
     if (!filterDate) {
       alert("Please select a date to filter.");
@@ -129,7 +149,6 @@ function DawnloadPDF() {
     generatePDF(filteredData, `Bill Report for ${filterDate}`);
   };
 
-  // Generate a PDF with all data and calculate total for `paid_or_not === "Yes"`
   const generateAllDataPDF = () => {
     const filteredData = data.filter((item) => item.paid_or_not === "Yes");
 
@@ -141,7 +160,6 @@ function DawnloadPDF() {
     generatePDF(filteredData, "Full Bill Report");
   };
 
-  // Generate a PDF with all unpaid data (`paid_or_not === "No"`)
   const generateUnpaidDataPDF = () => {
     const filteredData = data.filter((item) => item.paid_or_not === "No");
 
@@ -155,8 +173,10 @@ function DawnloadPDF() {
 
   return (
     <div>
-      <h2>Download Bill Reports</h2>
-      <label>
+      <h2 className="b-h1">Download Bill Reports</h2>
+      <button onClick={fetchData} className="b-tn">Fetch Data</button>
+      <br />
+      <label className="b-h2">
         Filter by Date:
         <input
           type="date"
@@ -164,23 +184,29 @@ function DawnloadPDF() {
           onChange={(e) => setFilterDate(e.target.value)}
         />
       </label>
-      <button onClick={filterDataAndGeneratePDF}>Download Report by Date</button>
+      <button onClick={filterDataAndGeneratePDF} className="b-tn">
+        Download Report by Date
+      </button>
       <br />
-      <button onClick={generateAllDataPDF}>Download Full Report</button>
+      <button onClick={generateAllDataPDF} className="b-tn">
+        Download Full Report
+      </button>
       <br />
-      <button onClick={generateUnpaidDataPDF}>Download Unpaid Report</button>
+      <button onClick={generateUnpaidDataPDF} className="b-tn">
+        Download Unpaid Report
+      </button>
       <br />
       <br />
-      <h3>Search and View Data</h3>
+      <h3 className="b-h2">Search and View Data</h3>
       <input
         type="text"
         placeholder="Search by any field"
         value={searchQuery}
         onChange={handleSearch}
-        
+        className="i"
       />
       <div style={{ overflowX: "auto" }}>
-        <table >
+        <table>
           <thead>
             <tr>
               <th>Name</th>
@@ -220,9 +246,3 @@ function DawnloadPDF() {
 }
 
 export default DawnloadPDF;
-
-
-
-
-
-  

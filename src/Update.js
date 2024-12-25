@@ -1,41 +1,82 @@
 import React, { useState } from "react";
-import './style/update.css'; // Import the CSS file
+import "./style/update.css"; // Import the CSS file
 
 function Update() {
   const [searchTerm, setSearchTerm] = useState("");
   const [formData, setFormData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [records, setRecords] = useState([]); // To store multiple records for same Bill No
+  const [records, setRecords] = useState([]); // To store multiple records for the same Bill No
 
-  // Fetch data based on the billNo
+  // Fetch all data and save to local storage
+  const fetchAllData = async () => {
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("https://sheetdb.io/api/v1/c495ucuahvet3");
+      const data = await response.json();
+
+      // Save data to local storage with a timestamp
+      localStorage.setItem(
+        "billsData",
+        JSON.stringify({ data, timestamp: new Date().getTime() })
+      );
+      alert("Data fetched and stored in local storage for one day.");
+    } catch (error) {
+      console.error("Error fetching all data:", error);
+      alert("Failed to fetch data. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Get data from local storage or fetch fresh data if expired
+  const getCachedData = () => {
+    const cachedData = localStorage.getItem("billsData");
+    if (cachedData) {
+      const { data, timestamp } = JSON.parse(cachedData);
+      const currentTime = new Date().getTime();
+      const oneDay = 24 * 60 * 60 * 1000;
+
+      if (currentTime - timestamp < oneDay) {
+        console.log("Using cached data.");
+        return data;
+      }
+    }
+    console.log("Cache expired. Fetch fresh data.");
+    return [];
+  };
+
+  // Search data by Bill No from local storage
   const handleSearch = () => {
     if (!searchTerm) {
       alert("Please enter a Bill No to search.");
       return;
     }
 
-    setIsLoading(true);
+    const data = getCachedData();
+    const filteredRecords = data.filter((record) => record.billNo === searchTerm);
 
-    fetch(`https://sheetdb.io/api/v1/iimwflqhrmr1k/search?billNo=${searchTerm}`)
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`No data found for Bill No: ${searchTerm}`);
-        }
-        return response.json();
-      })
-      .then((data) => {
-        if (data.length === 0) {
-          alert("No data found for the provided Bill No.");
-        } else {
-          setRecords(data); // Store all records returned
-          setFormData(data[0]); // Prefill form with the first match
-        }
-      })
-      .catch((error) => {
-        console.error("Error fetching data:", error);
-        alert("Failed to fetch data. Please try again.");
-      })
-      .finally(() => setIsLoading(false));
+    if (filteredRecords.length === 0) {
+      alert("No data found for the provided Bill No.");
+      setRecords([]);
+      setFormData(null);
+    } else {
+      setRecords(filteredRecords);
+      setFormData(filteredRecords[0]);
+    }
+  };
+
+  // Update local storage with new or updated data
+  const updateLocalStorage = (updatedRecord) => {
+    const data = getCachedData();
+    const updatedData = data.map((record) =>
+      record.billNo === updatedRecord.billNo ? updatedRecord : record
+    );
+    localStorage.setItem(
+      "billsData",
+      JSON.stringify({ data: updatedData, timestamp: new Date().getTime() })
+    );
+    console.log("Local storage updated with new data.");
   };
 
   // Handle form field changes
@@ -47,18 +88,25 @@ function Update() {
     }));
   };
 
-  // Handle form submission
+  // Handle form submission for update
   const handleUpdate = (e) => {
     e.preventDefault();
 
-    fetch(`https://sheetdb.io/api/v1/iimwflqhrmr1k/billNo/${formData.billNo}`, {
+    // Validate changes
+    const lastUploadedData = JSON.parse(localStorage.getItem("lastUploadedData"));
+    if (lastUploadedData && JSON.stringify(lastUploadedData) === JSON.stringify(formData)) {
+      alert("No changes detected. Please update the data before submitting.");
+      return;
+    }
+
+    fetch(`https://sheetdb.io/api/v1/c495ucuahvet3/billNo/${formData.billNo}`, {
       method: "PATCH",
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        data: formData, // Send updated data
+        data: formData,
       }),
     })
       .then((response) => {
@@ -70,9 +118,16 @@ function Update() {
       .then((data) => {
         console.log("Update successful:", data);
         alert("Data updated successfully!");
-        setFormData(null); // Reset the form after successful update
+
+        // Update local storage with the updated record
+        updateLocalStorage(formData);
+
+        setFormData(null);
         setSearchTerm("");
-        setRecords([]); // Clear records after update
+        setRecords([]);
+
+        // Store the updated data in localStorage
+        localStorage.setItem("lastUploadedData", JSON.stringify(formData));
       })
       .catch((error) => {
         console.error("Error updating data:", error);
@@ -82,12 +137,19 @@ function Update() {
 
   // Handle record selection from the list
   const handleSelectRecord = (record) => {
-    setFormData(record); // Prefill form with the selected record
+    setFormData(record);
   };
 
   return (
     <div>
       <h2>Search and Update</h2>
+
+      {/* Fetch All Data Section */}
+      <div className="fetch-section">
+        <button onClick={fetchAllData} disabled={isLoading}>
+          {isLoading ? "Fetching..." : "Fetch All Data"}
+        </button>
+      </div>
 
       {/* Search Section */}
       <div className="search-section">
@@ -99,9 +161,7 @@ function Update() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </label>
-        <button onClick={handleSearch} disabled={isLoading}>
-          {isLoading ? "Searching..." : "Search"}
-        </button>
+        <button onClick={handleSearch}>Search</button>
       </div>
 
       {/* List of Records Section */}
