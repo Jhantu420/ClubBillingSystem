@@ -37,11 +37,11 @@ function NewBill() {
     return []; // Return empty array if no valid cache or cache expired
   };
 
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const { name, billed_amount, date1, paid_or_not, billNo } = formData;
+    const { name, billed_amount, date1, paid_or_not, billNo } =
+      formData;
 
     // Validation
     if (!name || !billed_amount || !date1 || !paid_or_not || !billNo) {
@@ -74,6 +74,7 @@ function NewBill() {
         date2: formData.date2
           ? new Date(formData.date2).toLocaleDateString("en-CA")
           : "",
+        isNewBill: true,
       };
 
       // Add new bill to the cached bills data
@@ -83,7 +84,7 @@ function NewBill() {
         JSON.stringify({ data: updatedBills, timestamp: new Date().getTime() })
       );
 
-      console.log("New bill added to local storage:", newBill);
+      // console.log("New bill added to local storage:", newBill);
       alert("New bill added to local storage!");
 
       setFormData({
@@ -101,8 +102,6 @@ function NewBill() {
       alert("Failed to add the bill.");
     }
   };
-
-  
 
   return (
     <div className="main">

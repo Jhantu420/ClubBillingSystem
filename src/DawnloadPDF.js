@@ -27,50 +27,79 @@ function DawnloadPDF() {
   };
 
   // Final submission to the database
+  // Handle update of modified records
   const handleFinalSubmit = async () => {
     const cachedData = localStorage.getItem("billsData");
 
     if (cachedData) {
       const { data } = JSON.parse(cachedData);
 
+      // Identify new bills to submit
+      const newBills = data.filter((item) => item.isNewBill === true);
+
+      // Identify updated records to submit
+      const updatedRecords = data.filter((item) => item.isNewUpdate === true);
+
+      if (updatedRecords.length === 0 && newBills.length === 0) {
+        alert("No new or updated data to submit.");
+        return;
+      }
+
       try {
-        // Step 1: Delete existing data from the Google Sheet (or the database)
-        fetch("https://sheetdb.io/api/v1/c495ucuahvet3/duplicates", {
-          method: "DELETE",
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
-        })
-          .then((response) => response.json())
-          .then((data) => console.log(data));
+        // Batch new bills submission
+        if (newBills.length > 0) {
+          const newBillsResponse = await fetch(
+            "https://sheetdb.io/api/v1/c495ucuahvet3",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ data: newBills }), // Batch new bills in a single request
+            }
+          );
 
-        // Step 2: Submit the new data
-        const submitResponse = await fetch(
-          "https://sheetdb.io/api/v1/c495ucuahvet3",
-          {
-            method: "POST",
-            headers: {
-              Accept: "application/json",
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ data }),
+          if (!newBillsResponse.ok) {
+            throw new Error("Failed to add new bills.");
           }
-        );
+          console.log("New bills added:", await newBillsResponse.json());
+        }
 
-        const result = await submitResponse.json();
-        console.log("New data submitted to database:", result);
+        // Batch updated records submission
+        if (updatedRecords.length > 0) {
+          const updatedRecordsResponse = await fetch(
+            "https://sheetdb.io/api/v1/c495ucuahvet3",
+            {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ data: updatedRecords }), // Batch updated records in a single request
+            }
+          );
 
-        // Optionally, reset the localStorage or keep it for future updates
+          if (!updatedRecordsResponse.ok) {
+            throw new Error("Failed to update records.");
+          }
+          console.log("Updated records:", await updatedRecordsResponse.json());
+        }
+
+        // Reset flags in localStorage
+        const resetData = data.map((item) => ({
+          ...item,
+          isNewBill: false,
+          isNewUpdate: false,
+        }));
+
         localStorage.setItem(
           "billsData",
-          JSON.stringify({ data: [], timestamp: new Date().getTime() })
+          JSON.stringify({ data: resetData, timestamp: new Date().getTime() })
         );
 
-        alert("New data successfully submitted!");
+        alert("Database successfully updated!");
       } catch (error) {
-        console.error("Error handling data submission:", error);
-        alert("Failed to submit data.");
+        console.error("Error updating database:", error);
+        alert("Failed to update the database. Please try again.");
       }
     } else {
       alert("No data to submit.");
@@ -310,3 +339,24 @@ function DawnloadPDF() {
 }
 
 export default DawnloadPDF;
+
+// const response = await fetch(
+//   "https://sheetdb.io/api/v1/c495ucuahvet3",
+//   {
+//     method: "POST",
+//     headers: {
+//       "Content-Type": "application/json",
+//     },
+//     body: JSON.stringify({
+//       query: { id: record.billNo }, // Use `id` field for the query
+//       data: record, // Pass the updated record as `data`
+//     }),
+//   }
+// );
+
+// const result = await response.json();
+// console.log(`Record updated successfully:`, result);
+
+// if (!response.ok) {
+//   throw new Error(`Failed to update record with ID ${record.id}`);
+// }

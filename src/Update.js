@@ -43,6 +43,7 @@ function Update() {
     setFormData((prevData) => ({
       ...prevData,
       [name]: value,
+      isNewUpdate: true, // Mark the record as updated
     }));
   };
 
@@ -186,3 +187,7 @@ function Update() {
 }
 
 export default Update;
+
+
+
+
