@@ -46,42 +46,52 @@ function DawnloadPDF() {
       }
 
       try {
-        // Batch new bills submission
-        if (newBills.length > 0) {
-          const newBillsResponse = await fetch(
-            "https://sheetdb.io/api/v1/c495ucuahvet3",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ data: newBills }), // Batch new bills in a single request
-            }
-          );
-
-          if (!newBillsResponse.ok) {
-            throw new Error("Failed to add new bills.");
-          }
-          console.log("New bills added:", await newBillsResponse.json());
+        // Handle new bills submission
+        for (const bill of newBills) {
+          await fetch("https://sheetdb.io/api/v1/c495ucuahvet3", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ data: bill }),
+          });
+          console.log(`New bill added: ${bill.billNo}`);
         }
 
-        // Batch updated records submission
-        if (updatedRecords.length > 0) {
-          const updatedRecordsResponse = await fetch(
-            "https://sheetdb.io/api/v1/c495ucuahvet3",
-            {
-              method: "PATCH",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ data: updatedRecords }), // Batch updated records in a single request
-            }
-          );
+        // Handle updated records submission
+        for (const record of updatedRecords) {
+          try {
+            const response = await fetch(
+              `https://sheetdb.io/api/v1/c495ucuahvet3/billNo/${record.billNo}`, // Updated API URL
+              {
+                method: "PATCH",
+                headers: {
+                  Accept: "application/json",
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  data: record, // Send the record as the update payload
+                }),
+              }
+            );
 
-          if (!updatedRecordsResponse.ok) {
-            throw new Error("Failed to update records.");
+            if (!response.ok) {
+              throw new Error(
+                `Failed to update record with Bill No ${record.billNo}: ${response.statusText}`
+              );
+            }
+
+            const data = await response.json();
+            // console.log(
+            //   `Record updated successfully for Bill No ${record.billNo}:`,
+            //   data
+            // );
+          } catch (error) {
+            console.error(
+              `Error updating record with Bill No ${record.billNo}:`,
+              error
+            );
           }
-          console.log("Updated records:", await updatedRecordsResponse.json());
         }
 
         // Reset flags in localStorage
