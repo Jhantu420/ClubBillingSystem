@@ -7,6 +7,13 @@ function Update() {
   const [isLoading, setIsLoading] = useState(false);
   const [records, setRecords] = useState([]); // To store multiple records for the same Bill No
 
+  // Check if the data in localStorage has expired
+  const isDataExpired = (timestamp) => {
+    const currentTime = new Date().getTime();
+    const expiryTime = 60 * 24 * 60 * 60 * 1000; // 60 days in milliseconds
+    return currentTime - timestamp > expiryTime;
+  };
+
   // Fetch and update records from local storage
   const handleSearch = () => {
     if (!searchTerm) {
@@ -19,7 +26,14 @@ function Update() {
     // Fetch data from localStorage
     const cachedData = localStorage.getItem("billsData");
     if (cachedData) {
-      const { data } = JSON.parse(cachedData);
+      const { data, timestamp } = JSON.parse(cachedData);
+
+      // Check if the data is expired
+      if (isDataExpired(timestamp)) {
+        alert("The cached data has expired. Please fetch new data.");
+        return;
+      }
+
       const filteredRecords = data.filter(
         (record) => record.billNo === searchTerm
       );
@@ -66,10 +80,13 @@ function Update() {
         record.billNo === formData.billNo ? { ...formData } : record
       );
 
-      // Save updated data back to localStorage
+      // Set new expiration timestamp (60 days from now)
+      const newTimestamp = new Date().getTime();
+
+      // Save updated data back to localStorage with new expiration time
       localStorage.setItem(
         "billsData",
-        JSON.stringify({ data: updatedData, timestamp })
+        JSON.stringify({ data: updatedData, timestamp: newTimestamp })
       );
       alert("Data updated in local storage!");
       setRecords(
@@ -187,7 +204,3 @@ function Update() {
 }
 
 export default Update;
-
-
-
-

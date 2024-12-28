@@ -43,21 +43,18 @@ label {
 
 /* Button styles */
 button {
-  background-color: #4caf50;
-  border: none;
-  padding: 12px 20px;
-  margin: 10px 5px;
-  cursor: pointer;
-  border-radius: 6px;
-  font-size: 16px;
-  font-weight: bold;
-  color: #fff;
-  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+  font-size: 18px;
+  padding: 14px 25px;
+  max-width: 250px;
+  background-color: #19681c;
 }
 
 button:hover {
   background-color: #45a049;
   box-shadow: 2px 2px 7px rgba(0, 0, 0, 0.3);
+}
+.btn-cls{
+  display: inline-flexbox;
 }
 
 /* Table styles */
@@ -92,10 +89,7 @@ tr:nth-child(even) {
 tr:hover {
   background-color: #e9f5e9;
 }
-.in-search{
-  border: red;
-  height: 40px;
-}
+
 /* Scrollable table container */
 div[style*="overflow-x: auto"] {
   margin-top: 5%;
@@ -107,59 +101,6 @@ div[style*="overflow-x: auto"] {
   max-height: 400px; /* Increased for desktop view */
 }
 
-
-/* Desktop-specific styles */
-@media (min-width: 1024px) {
-  body {
-    padding: 20px;
-    background-color: #f0f0f0;
-  }
-
-  .b-h1 {
-    font-size: 36px;
-    margin-bottom: 40px;
-  }
-
-  .b-h2 {
-    font-size: 22px;
-    margin-bottom: 30px;
-  }
-
-  label {
-    font-size: 20px;
-  }
-
-  .b-tn {
-    font-size: 16px;
-    padding: 14px;
-    margin-bottom: 20px;
-  }
-
-  button {
-    font-size: 18px;
-    padding: 14px 25px;
-    max-width: 250px;
-  }
-
-  table {
-    margin-top: 30px;
-  }
-
-  th,
-  td {
-    font-size: 18px;
-    padding: 14px;
-  }
-
-  th {
-    font-size: 20px;
-  }
-
-  tr:hover {
-    background-color: #dff5df;
-  }
- 
-}
 /* General Responsive Styles */
 @media (max-width: 768px) {
   h2,

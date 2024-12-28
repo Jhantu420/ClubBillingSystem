@@ -26,11 +26,11 @@ function NewBill() {
     if (cachedData) {
       const { data, timestamp } = JSON.parse(cachedData);
       const currentTime = new Date().getTime();
-      const fiveDays = 5 * 24 * 60 * 60 * 1000; // 5 days in milliseconds
+      const sixtyDays = 60 * 24 * 60 * 60 * 1000;; // 60 days in milliseconds
 
-      if (currentTime - timestamp < fiveDays) {
-        // Use cached data if it is within 5 days
-        console.log("Using cached bills data:", data);
+      if (currentTime - timestamp < sixtyDays) {
+        // Use cached data if it is within 60 days
+        // console.log("Using cached bills data:", data);
         return data;
       }
     }

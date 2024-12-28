@@ -9,8 +9,8 @@ function Home() {
         <Link to="/update" className="link-button">
           Update Bil
         </Link>
-        <Link to="/dawnload-pdf" className="link-button">
-          Dawnload-pdf
+        <Link to="/dashboard" className="link-button">
+          Dashboard
         </Link>
       </div>
       <div>
